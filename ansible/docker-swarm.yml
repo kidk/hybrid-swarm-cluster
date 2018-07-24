@@ -1,0 +1,35 @@
+---
+
+#
+# Install Docker and prepare all hosts for Swarm
+#
+- hosts:
+  - masters
+  - nodes_linux
+  become: yes
+
+  pre_tasks:
+  - name: Update apt cache and upgrade if needed.
+    apt: update_cache=yes upgrade=yes cache_valid_time=3600
+  roles:
+  - angstwad.docker_ubuntu
+  vars:
+    apt_key_url: hkp://keyserver.ubuntu.com
+
+- hosts:
+  - nodes_windows
+
+  roles:
+    - docker-windows
+
+#
+# Initiate swarm
+#
+- hosts:
+  - masters
+  - nodes_linux
+  - nodes_windows
+  roles:
+    - docker-logging
+    - docker-swarm
+

@@ -1,0 +1,12 @@
+---
+
+- name: Prepare Docker Swarm masters
+  include: masters.yml
+
+- name: Prepare Docker Swarm Linux nodes
+  include: linux-nodes.yml become=yes
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Prepare Docker Swarm Windows nodes
+  include: windows-nodes.yml
+  when: ansible_os_family == 'Windows'

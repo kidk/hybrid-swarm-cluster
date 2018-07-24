@@ -1,0 +1,73 @@
+---
+
+- name: Ensuring Docker Engine Is Running
+  service:
+    name: "docker"
+    state: "started"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: docker_swarm | Checking Swarm Mode Status
+  command: "docker info"
+  register: "docker_info_linux"
+  changed_when: false
+  when: ansible_distribution == 'Ubuntu'
+
+- name: docker_swarm | Checking Swarm Mode Status
+  win_command: "docker info"
+  register: "docker_info_windows"
+  changed_when: false
+  when: ansible_os_family == 'Windows'
+
+- name: Set docker_info depending on type of host
+  set_fact:
+    docker_info: "{{ docker_info_linux if 'skipped' in docker_info_windows and docker_info_windows.skipped else docker_info_windows }}"
+
+- name: master | Init Docker Swarm Mode On First Manager
+  command: >
+          docker swarm init
+          --listen-addr {{ private_ip }}:2377
+          --advertise-addr {{ private_ip }}
+  when: >
+        'Swarm: inactive' in docker_info.stdout and
+        inventory_hostname == groups.masters[0]
+
+- name: master | Capturing Docker Swarm Worker join-token
+  command: "docker swarm join-token -q worker"
+  changed_when: false
+  register: "docker_swarm_worker_token"
+  when: >
+        inventory_hostname == groups.masters[0]
+
+- name: master | Capturing Docker Swarm Manager join-token
+  command: "docker swarm join-token -q manager"
+  changed_when: false
+  register: "docker_swarm_manager_token"
+  when: >
+        inventory_hostname == groups.masters[0]
+
+- name: master | Defining Docker Swarm Manager join-token
+  set_fact:
+    docker_swarm_manager_token: "{{ hostvars[groups.masters[0]]['docker_swarm_manager_token'] }}"
+  changed_when: false
+  when: >
+        inventory_hostname != groups.masters[0]
+
+- name: master | Defining Docker Swarm Worker join-token
+  set_fact:
+    docker_swarm_worker_token: "{{ hostvars[groups.masters[0]]['docker_swarm_worker_token'] }}"
+  changed_when: false
+  when: >
+        inventory_hostname != groups.masters[0]
+
+- name: master | Joining Additional Docker Swarm Managers To Cluster
+  command: >
+          docker swarm join
+          --listen-addr {{ private_ip }}:2377
+          --advertise-addr {{ private_ip }}
+          --token {{ docker_swarm_manager_token.stdout }}
+          {{ hostvars[masters[0]]['private_ip'] }}
+  when: >
+        inventory_hostname != groups.masters[0] and
+        inventory_hostname in groups.masters and
+        'Swarm: active' not in docker_info.stdout and
+        'Swarm: pending' not in docker_info.stdout

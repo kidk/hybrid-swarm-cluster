@@ -1,0 +1,23 @@
+---
+
+- name: Ensuring Docker Engine Is Running
+  service:
+    name: "docker"
+    state: "started"
+
+- name: docker_swarm | Checking Swarm Mode Status
+  command: "docker info"
+  register: "docker_info"
+  changed_when: false
+
+- name: docker_swarm | Joining Docker Swarm Workers To Cluster
+  command: >
+          docker swarm join
+          --listen-addr {{ private_ip }}:2377
+          --advertise-addr {{ private_ip }}:2377
+          --token {{ docker_swarm_worker_token.stdout }}
+          {{ hostvars[groups.masters[0]]['private_ip'] }}:2377
+  when: >
+        inventory_hostname in groups.nodes_linux and
+        'Swarm: active' not in docker_info.stdout and
+        'Swarm: pending' not in docker_info.stdout

@@ -1,0 +1,15 @@
+---
+
+- name: Setup log rotation for Docker logs
+  template:
+    src: docker-container.j2
+    dest: /etc/logrotate.d/docker-container
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Set logrotate to run hourly
+  copy:
+    src: /etc/cron.daily/logrotate
+    dest: /etc/cron.hourly/logrotate
+    mode: "+x"
+    remote_src: yes
+  when: ansible_distribution == 'Ubuntu'

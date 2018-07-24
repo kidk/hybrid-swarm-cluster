@@ -1,0 +1,18 @@
+# Host group for masters
+# Example: master01 ansible_host={ip} private_ip={private ip}
+[masters]
+
+
+# Host group for Linux nodes
+# Example: linux01 ansible_host={ip}  private_ip={private ip}
+[nodes_linux]
+
+
+# Host group for Windows nodes
+# Example: windows01 ansible_host={ip}  private_ip={private ip}
+[nodes_windows]
+
+
+[nodes_windows:vars]
+ansible_user=windows_username
+ansible_password=windows_password
