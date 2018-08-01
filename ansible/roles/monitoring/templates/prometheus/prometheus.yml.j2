@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+  - job_name: 'cadvisor'
+    static_configs:
+{% for host in groups.nodes_linux %}
+    - targets: ['{{ hostvars[host].private_ip }}:8080']
+{% endfor %}
+{% for host in groups.masters %}
+    - targets: ['{{ hostvars[host].private_ip }}:8080']
+{% endfor %}
+  - job_name: 'node_exporter'
+    static_configs:
+{% for host in groups.nodes_linux %}
+    - targets: ['{{ hostvars[host].private_ip }}:9100']
+{% endfor %}
+{% for host in groups.masters %}
+    - targets: ['{{ hostvars[host].private_ip }}:9100']
+{% endfor %}
+{% for host in groups.nodes_windows %}
+    - targets: ['{{ hostvars[host].private_ip }}:9100']
+{% endfor %}

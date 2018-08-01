@@ -25,11 +25,15 @@
 #
 # Initiate swarm
 #
-- hosts:
-  - masters
-  - nodes_linux
-  - nodes_windows
+- hosts: all
   roles:
     - docker-logging
     - docker-swarm
 
+
+#
+# Deploy monitoring
+#
+- hosts: all
+  roles:
+    - monitoring

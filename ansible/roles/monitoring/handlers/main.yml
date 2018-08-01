@@ -1,0 +1,12 @@
+---
+
+- name: restart Linux Docker
+  service:
+    name: docker
+    state: restarted
+
+- name: restart Windows Docker
+  win_service:
+    name: Docker
+    state: restarted
+

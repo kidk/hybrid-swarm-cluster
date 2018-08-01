@@ -1,0 +1,67 @@
+version: '3.3'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+    - "9090:9090"
+    volumes:
+    - "/root/prometheus.yml:/etc/prometheus/prometheus.yml"
+    deploy:
+      placement:
+        constraints:
+        - node.platform.os == linux
+      restart_policy:
+        condition: on-failure
+  grafana:
+    image: grafana/grafana
+    ports:
+    - "3000:3000"
+    environment:
+    - GF_SECURITY_ADMIN_PASSWORD=SuperSecret
+    volumes:
+    - "/var/lib/grafana"
+    - "/root/grafana_prometheus.yml:/etc/grafana/provisioning/datasources/grafana_prometheus.yml"
+    - "/root/grafana_dashboards.yml:/etc/grafana/provisioning/dashboards/grafana_dashboards.yml"
+    - "/root/grafana_dashboards/:/etc/grafana/provisioning/dashboards/templates/"
+    links:
+    - prometheus
+    deploy:
+      placement:
+        constraints:
+        - node.platform.os == linux
+      restart_policy:
+        condition: on-failure
+  cadvisor:
+    image: google/cadvisor:latest
+    deploy:
+      mode: global
+      placement:
+        constraints:
+        - node.platform.os == linux
+    ports:
+    - "8080:8080"
+    volumes:
+    - "/:/rootfs:ro"
+    - "/var/run:/var/run:rw"
+    - "/sys:/sys:ro"
+    - "/var/lib/docker/:/var/lib/docker:ro"
+  node-exporter:
+    image: quay.io/prometheus/node-exporter
+    ports:
+    - 9100:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /etc/hostname:/etc/nodename
+    command:
+      - '--path.sysfs=/host/sys'
+      - '--path.procfs=/host/proc'
+      - '--collector.textfile.directory=/etc/node-exporter/'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    deploy:
+      mode: global
+      placement:
+        constraints:
+        - node.platform.os == linux

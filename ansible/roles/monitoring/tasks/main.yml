@@ -1,0 +1,68 @@
+---
+
+- name: Enable monitoring endpoint on Docker Linux
+  template:
+    src: docker/daemon.json.j2
+    dest: /etc/docker/daemon.json
+  when: ansible_distribution == 'Ubuntu'
+  notify:
+    - restart Linux Docker
+
+- name: Enable monitoring endpoint on Docker Windows
+  template:
+    src: docker/daemon.json.j2
+    dest: C:\ProgramData\docker\config\daemon.json
+  when: ansible_os_family == 'Windows'
+  notify:
+    - restart Windows Docker
+
+- name: create prometheus config file on all linux nodes
+  template:
+    src: prometheus/prometheus.yml.j2
+    dest: /root/prometheus.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: create prometheus config file on all linux nodes
+  template:
+    src: grafana/prometheus.yml.j2
+    dest: /root/grafana_prometheus.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: create graphana dashboards file on all linux nodes
+  template:
+    src: grafana/dashboards.yml.j2
+    dest: /root/grafana_dashboards.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: copy dashboards for grafana
+  copy:
+    src: ../files/dashboards/
+    dest: /root/grafana_dashboards/
+  when: ansible_distribution == 'Ubuntu'
+
+- name: copy composer file
+  template:
+    src: monitoring-compose.yml.j2
+    dest: /root/monitoring-compose.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: deploy monitoring stack
+  command: >
+          docker stack deploy -c /root/monitoring-compose.yml --prune monitoring
+  when: >
+    ansible_distribution == 'Ubuntu' and
+    inventory_hostname == groups.masters[0]
+
+- name: Download earthrise.jpg to specified path
+  win_get_url:
+    url: https://github.com/martinlindhe/wmi_exporter/releases/download/v0.3.4/wmi_exporter-0.3.4-amd64.msi
+    dest: C:\wmi_exporter-0.3.4-amd64.msi
+  when: >
+    ansible_os_family == 'Windows'
+
+- name: deploy node_exporter on windows
+  win_package:
+    arguments: LISTEN_PORT=9100
+    path: C:\wmi_exporter-0.3.4-amd64.msi
+  when: >
+    ansible_os_family == 'Windows'
